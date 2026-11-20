@@ -147,6 +147,15 @@ th { color: var(--muted); font-weight: 600; }
 .tag.ok { background: rgba(47,107,79,0.15); color: var(--ok); }
 .tag.bad { background: rgba(139,58,58,0.15); color: var(--danger); }
 .tag.seal { background: rgba(31,78,121,0.15); color: var(--accent); }
+.tag.day { margin: 2px 6px 2px 0; }
+.days { margin: 0; line-height: 2; }
+.v.small { font-size: 0.95rem; font-weight: 500; }
+.grid.stale .stat { border-color: var(--danger); border-style: dashed; }
+.stale-banner {
+  border-color: var(--danger);
+  background: rgba(139, 58, 58, 0.07);
+}
+.stale-banner h2 { color: var(--danger); }
 .msg { color: var(--danger); min-height: 1.2em; margin: 8px 0; }
 .okmsg { color: var(--ok); }
 @media (max-width: 960px) {

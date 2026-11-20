@@ -2,6 +2,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.db import connect
+from app.services.overview import recompute_overview
 
 router = APIRouter(tags=["settings"])
 
@@ -30,6 +31,7 @@ def set_dock_day(body: DayIn):
             "INSERT INTO settings(key, value) VALUES ('dock_day', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
             (body.dock_day,),
         )
+        recompute_overview(conn)
         conn.commit()
         return {"dock_day": body.dock_day}
     finally:

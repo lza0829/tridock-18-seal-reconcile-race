@@ -1,5 +1,6 @@
 from __future__ import annotations
 from app.db import connect
+from app.services.overview import recompute_overview
 
 SCHEMA = '''
 CREATE TABLE IF NOT EXISTS settings (
@@ -85,6 +86,12 @@ CREATE TABLE IF NOT EXISTS reopen_requests (
   dock_day TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'none'
 );
+CREATE TABLE IF NOT EXISTS overview_stats (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  payload TEXT NOT NULL,
+  fingerprint TEXT NOT NULL,
+  computed_at TEXT NOT NULL
+);
 '''
 
 
@@ -93,6 +100,10 @@ def seed_if_empty() -> None:
     try:
         conn.executescript(SCHEMA)
         if conn.execute("SELECT COUNT(*) c FROM suppliers").fetchone()["c"]:
+            # 已有数据的库（含老库升级）：保证物化行存在；若被改脏，留给读时互证标 stale
+            if not conn.execute("SELECT 1 FROM overview_stats WHERE id=1").fetchone():
+                recompute_overview(conn)
+                conn.commit()
             return
         conn.execute("INSERT INTO settings(key, value) VALUES ('dock_day', ?)", ("2026-11-18",))
         suppliers = [
@@ -139,6 +150,7 @@ def seed_if_empty() -> None:
                    VALUES (?,?,?,?,?,?,?)''',
                 (*row, "2026-11-18T12:00:00Z"),
             )
+        recompute_overview(conn)
         conn.commit()
     finally:
         conn.close()

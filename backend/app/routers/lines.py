@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from app.db import connect
 from app.services.gate import assert_writable
+from app.services.overview import recompute_overview
 
 router = APIRouter(tags=["lines"])
 
@@ -74,6 +75,7 @@ def add_expect(body: ExpectIn):
                VALUES (?,?,?,?,?,?,?)''',
             (body.doc_no, body.supplier_code, body.sku, body.dock_day, body.qty, body.note, _now()),
         )
+        recompute_overview(conn)
         conn.commit()
         return {"ok": True}
     except ValueError as e:
@@ -119,6 +121,7 @@ def add_receive(body: ReceiveIn):
                 _now(),
             ),
         )
+        recompute_overview(conn)
         conn.commit()
         return {"ok": True}
     except ValueError as e:
@@ -154,6 +157,7 @@ def add_confirm(body: ConfirmIn):
                VALUES (?,?,?,?,?,?,?)''',
             (body.confirm_no, body.supplier_code, body.sku, body.dock_day, body.qty, body.note, _now()),
         )
+        recompute_overview(conn)
         conn.commit()
         return {"ok": True}
     except ValueError as e:

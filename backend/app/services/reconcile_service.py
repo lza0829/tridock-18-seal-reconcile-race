@@ -3,6 +3,8 @@ from collections import defaultdict
 from datetime import datetime, timezone
 import sqlite3
 
+from app.services.overview import recompute_overview
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -75,6 +77,7 @@ def run_reconcile(conn: sqlite3.Connection, dock_day: str) -> dict:
         "UPDATE reconcile_batches SET matched_count=?, variance_count=? WHERE id=?",
         (matched, variance, batch_id),
     )
+    recompute_overview(conn)
     conn.commit()
     return {
         "batch_id": batch_id,
@@ -104,6 +107,8 @@ def seal_day(conn: sqlite3.Connection, dock_day: str) -> dict:
         "UPDATE reconcile_batches SET status='sealed', sealed_at=? WHERE id=?",
         (now, batch["id"]),
     )
+    # 结案与总览物化同事务提交：并发刷新只见全旧或全新，不得半截显示旧可写日
+    recompute_overview(conn)
     conn.commit()
     return dict(conn.execute("SELECT * FROM reconcile_batches WHERE id=?", (batch["id"],)).fetchone())
 
@@ -119,5 +124,6 @@ def set_variance_fate(conn: sqlite3.Connection, variance_id: int, fate: str) -> 
     if batch and batch["status"] == "sealed":
         raise ValueError("已结案批次不可改差额命运")
     conn.execute("UPDATE variance_rows SET fate=? WHERE id=?", (fate, variance_id))
+    recompute_overview(conn)
     conn.commit()
     return dict(conn.execute("SELECT * FROM variance_rows WHERE id=?", (variance_id,)).fetchone())
